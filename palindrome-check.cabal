@@ -1,0 +1,48 @@
+cabal-version:      3.0
+name:               palindrome-check
+version:            0.1.0.0
+synopsis:           Palindrome checker
+description:        Palindrome checker detection library
+category:           Data
+license:            MIT
+license-file:       LICENSE
+homepage:           https://zivgitlab.uni-muenster.de/SCDH/spike/2025-cicd-sprintwoche/beispielprojekte/palindrome-checker-hs
+bug-reports:        https://zivgitlab.uni-muenster.de/SCDH/spike/2025-cicd-sprintwoche/beispielprojekte/palindrome-checker-hs/-/issues
+author:             Mirko Westermeier
+maintainer:         mirko.westermeier@uni-muenster.de
+copyright:          2025 Mirko Westermeier
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://zivgitlab.uni-muenster.de/SCDH/spike/2025-cicd-sprintwoche/beispielprojekte/palindrome-checker-hs.git
+
+common basics
+  ghc-options:      -Wall
+  build-depends:    base ^>=4.18.3.0
+  default-language: Haskell2010
+
+library
+  import:           basics
+  exposed-modules:  Palindrome
+  hs-source-dirs:   lib
+
+test-suite palindrome-test
+  import:           basics
+  default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Main.hs
+  build-depends:    palindrome-check
+                  , hspec >= 2.10 && < 3
+                  , QuickCheck >= 2.14 && < 3
+
+test-suite doctest
+  import:           basics
+  default-language: Haskell2010
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Doctest.hs
+  build-depends:    palindrome-check
+                  , doctest >= 0.20 && < 0.23
