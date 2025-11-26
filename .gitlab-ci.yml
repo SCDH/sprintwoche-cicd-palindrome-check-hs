@@ -57,6 +57,7 @@ haddock:
 
 pages:
   stage: deploy
+  image: alpine
   dependencies:
     - haddock
   script:
