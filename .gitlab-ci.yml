@@ -1,0 +1,70 @@
+stages:
+  - build
+  - test
+  - docs
+  - deploy
+
+variables:
+  CABAL_DIR: "$CI_PROJECT_DIR/.cabal"
+  DIST_DIR: "$CI_PROJECT_DIR/dist-newstyle"
+
+image: haskell:9.6.7
+
+cache:
+  key:
+    files:
+      - palindrome-check.cabal
+  paths:
+    - ${CABAL_DIR}
+    - ${DIST_DIR}
+
+build:
+  stage: build
+  before_script:
+    - cabal update
+  script:
+    - cabal build --only-dependencies
+    - cabal build
+  artifacts:
+    paths:
+      - ${DIST_DIR}
+    expire_in: 1 hour
+
+test:
+  stage: test
+  dependencies:
+    - build
+  script:
+    - cabal test palindrome-test --test-show-details=direct
+
+doctest:
+  stage: test
+  dependencies:
+    - build
+  script:
+    - cabal test doctest --test-show-details=direct
+
+haddock:
+  stage: docs
+  dependencies:
+    - build
+  script:
+    - cabal haddock --haddock-hyperlink-source --haddock-quickjump --haddock-html-location='https://hackage.haskell.org/package/$pkg-$version/docs'
+  artifacts:
+    paths:
+      - ${DIST_DIR}/build/*/*/*/doc/html/*
+    expire_in: 1 week
+
+pages:
+  stage: deploy
+  dependencies:
+    - haddock
+  script:
+    - mkdir -p public
+    - cp -r ${DIST_DIR}/build/*/*/*/doc/html/*/* public/
+    - ls -la public/
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
