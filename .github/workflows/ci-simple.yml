@@ -1,0 +1,83 @@
+name: Build, Test, API Docs (Single Job)
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build-test-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare Haskell environment
+        uses: haskell-actions/setup@v2
+        id: setup
+        with:
+          ghc-version: 9.6.7
+          cabal-update: true
+
+      - name: Configure build (produces cache key)
+        run: cabal build --enable-tests --dry-run all
+
+      - name: Enable cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ steps.setup.outputs.cabal-store }}
+          key: cabal-${{ hashFiles('**/plan.json') }}
+          restore-keys: cabal-
+
+      - name: Build dependencies
+        run: cabal build --only-dependencies --enable-tests all
+
+      - name: Build
+        run: cabal build --enable-tests all
+
+      - name: Run unit/property tests
+        run: cabal test --test-show-details=direct palindrome-test
+
+      - name: Run doctests
+        run: cabal test --test-show-details=direct doctest
+
+      - name: Generate API docs
+        run: |
+          cabal haddock \
+            --haddock-hyperlink-source \
+            --haddock-quickjump \
+            --haddock-html-location='https://hackage.haskell.org/package/$pkg-$version/docs'
+
+      - name: Collect API docs
+        run: mv $(find dist-newstyle/build -type d -wholename '*/doc/html/*' | head -n 1) docs
+
+      - name: Upload API docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs
+          path: docs
+
+  pages:
+    runs-on: ubuntu-latest
+    needs: build-test-docs
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+
+      - name: Load API docs
+        uses: actions/download-artifact@v4
+        with:
+          name: docs
+          path: docs
+
+      - name: Upload to pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy to pages
+        uses: actions/deploy-pages@v4
+        id: deployment
