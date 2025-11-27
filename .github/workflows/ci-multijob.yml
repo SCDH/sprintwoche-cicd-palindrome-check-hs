@@ -1,0 +1,74 @@
+name: Build, Test, API Docs (Multi Job)
+
+on: workflow_dispatch
+
+env:
+  HADDOCK_DIR: haddock_html
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-haskell-cached
+        with:
+          cache-mode: full
+      - run: cabal build --only-dependencies --enable-tests all
+      - run: cabal build --enable-tests all
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-haskell-cached
+      - run: cabal test palindrome-test --test-show-details=direct
+
+  doctest:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-haskell-cached
+      - run: cabal test doctest --test-show-details=direct
+
+  haddock:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-haskell-cached
+      - name: Generate Haddock documentation
+        run: |
+          cabal haddock \
+            --haddock-hyperlink-source \
+            --haddock-quickjump \
+            --haddock-html-location='https://hackage.haskell.org/package/$pkg-$version/docs'
+      - run: mv $(find dist-newstyle/build -type d -wholename '*/doc/html/*' | head -n 1) ${{ env.HADDOCK_DIR }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: haddock-docs
+          path: ${{ env.HADDOCK_DIR }}
+          retention-days: 7
+
+  pages:
+    runs-on: ubuntu-latest
+    needs: haddock
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: haddock-docs
+          path: ${{ env.HADDOCK_DIR }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.HADDOCK_DIR }}
+      - uses: actions/deploy-pages@v4
+        id: deployment

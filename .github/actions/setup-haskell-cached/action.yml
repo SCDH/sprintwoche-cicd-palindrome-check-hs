@@ -1,0 +1,50 @@
+name: 'Setup Haskell with Cache'
+description: 'Sets up Haskell environment with cabal store and dist-newstyle cache'
+
+inputs:
+  ghc-version:
+    description: 'GHC version to install'
+    required: false
+    default: '9.6.7'
+  cache-mode:
+    description: 'Cache mode: "restore" (read-only) or "full" (read+write)'
+    required: false
+    default: 'restore'
+
+runs:
+  using: 'composite'
+  steps:
+
+    - name: Set up GHC environment
+      uses: haskell-actions/setup@v2
+      id: setup
+      with:
+        ghc-version: ${{ inputs.ghc-version }}
+
+    - name: Configure the build
+      shell: bash
+      run: |
+        cabal configure --enable-tests
+        cabal build all --dry-run
+
+    - name: Restore cached dependencies
+      if: inputs.cache-mode == 'restore'
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          ${{ steps.setup.outputs.cabal-store }}
+          dist-newstyle
+        key: ${{ runner.os }}-ghc-${{ steps.setup.outputs.ghc-version }}-cabal-${{ hashFiles('**/plan.json') }}
+        restore-keys: |
+          ${{ runner.os }}-ghc-${{ steps.setup.outputs.ghc-version }}-cabal-
+
+    - name: Cache dependencies (restore and save)
+      if: inputs.cache-mode == 'full'
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ steps.setup.outputs.cabal-store }}
+          dist-newstyle
+        key: ${{ runner.os }}-ghc-${{ steps.setup.outputs.ghc-version }}-cabal-${{ hashFiles('**/plan.json') }}
+        restore-keys: |
+          ${{ runner.os }}-ghc-${{ steps.setup.outputs.ghc-version }}-cabal-
