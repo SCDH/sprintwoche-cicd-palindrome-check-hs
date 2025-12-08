@@ -43,6 +43,10 @@ Documentation created: [...]/doc/html/palindrome-check/
 
 The [API docs are also available on GitLab pages](https://palindrome-checker-hs-eb3117.zivgitlabpages.uni-muenster.de/).
 
+## Releases
+
+[Package releases](https://zivgitlab.uni-muenster.de/SCDH/spike/2025-cicd-sprintwoche/beispielprojekte/palindrome-checker-hs/-/releases) are continuously generated on tags named `^v[\d.]+$`, for example `v0.1.0`.
+
 ## Author and license
 
 (c) 2025 Mirko Westermeier

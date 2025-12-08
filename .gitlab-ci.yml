@@ -3,6 +3,8 @@ stages:
   - test
   - docs
   - deploy
+  - package
+  - release
 
 variables:
   CABAL_DIR: "$CI_PROJECT_DIR/.cabal"
@@ -69,3 +71,33 @@ pages:
       - public
   only:
     - main
+
+package:
+  stage: package
+  dependencies:
+    - build
+  script:
+    - cabal sdist
+  artifacts:
+    paths:
+      - dist-newstyle/sdist/*.tar.gz
+  only:
+    - /^v[\d.]+$/
+
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  before_script: []
+  dependencies:
+    - package
+  script:
+    - echo "Release job for palindrome-check version $CI_COMMIT_TAG"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    description: "palindrome-check version $CI_COMMIT_TAG"
+    assets:
+      links:
+        - name: "Download source distribution"
+          url: "$CI_PROJECT_URL/-/jobs/artifacts/$CI_COMMIT_TAG/download?job=package"
+  only:
+    - /^v[\d.]+$/
