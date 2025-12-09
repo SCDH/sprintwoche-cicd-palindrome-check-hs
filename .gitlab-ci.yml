@@ -34,21 +34,21 @@ build:
 
 test:
   stage: test
-  dependencies:
+  needs:
     - build
   script:
     - cabal test palindrome-test --test-show-details=direct
 
 doctest:
   stage: test
-  dependencies:
+  needs:
     - build
   script:
     - cabal test doctest --test-show-details=direct
 
 haddock:
   stage: docs
-  dependencies:
+  needs:
     - build
   script:
     - cabal haddock --haddock-hyperlink-source --haddock-quickjump --haddock-html-location='https://hackage.haskell.org/package/$pkg-$version/docs'
@@ -60,7 +60,7 @@ haddock:
 pages:
   stage: deploy
   image: alpine
-  dependencies:
+  needs:
     - haddock
   script:
     - mkdir -p public
@@ -74,7 +74,7 @@ pages:
 
 package:
   stage: package
-  dependencies:
+  needs:
     - build
   script:
     - cabal sdist
@@ -88,7 +88,7 @@ release:
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   before_script: []
-  dependencies:
+  needs:
     - package
   script:
     - echo "Release job for palindrome-check version $CI_COMMIT_TAG"
